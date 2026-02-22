@@ -1,0 +1,49 @@
+name: Build & Release
+
+# Runs automatically when you push a version tag (e.g. v1.1.0).
+# Can also be triggered manually via Actions → Run workflow (builds only, no release).
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+
+permissions:
+  contents: write   # needed to create GitHub Releases
+
+jobs:
+  release:
+    runs-on: macos-latest   # macOS runner required for .app / .dmg packaging
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      # Cache the downloaded Electron binaries so repeated builds are faster
+      - name: Cache Electron binaries
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Caches/electron
+            ~/Library/Caches/electron-builder
+          key: electron-${{ hashFiles('package-lock.json') }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build macOS DMGs (Intel + Apple Silicon)
+        run: npm run dist
+
+      # Only publish a release when this run was triggered by a version tag
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.dmg
+          generate_release_notes: true   # auto-generates notes from commits/PRs
