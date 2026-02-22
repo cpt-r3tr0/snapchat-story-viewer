@@ -1,0 +1,49 @@
+{
+  "name": "snapchat-story-viewer",
+  "version": "1.0.0",
+  "description": "Browse and download public Snapchat stories",
+  "author": "cpt-r3tr0",
+  "homepage": "https://github.com/cpt-r3tr0/snapchat-story-viewer",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cpt-r3tr0/snapchat-story-viewer.git"
+  },
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --mac",
+    "dist:x64": "electron-builder --mac --x64",
+    "dist:arm64": "electron-builder --mac --arm64"
+  },
+  "dependencies": {
+    "axios": "^1.13.5",
+    "cheerio": "^1.0.0"
+  },
+  "devDependencies": {
+    "electron": "^34.0.0",
+    "electron-builder": "^26.8.1"
+  },
+  "build": {
+    "appId": "com.snapchat-story-viewer",
+    "productName": "Snapchat Story Viewer",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "src/**/*",
+      "renderer/**/*"
+    ],
+    "mac": {
+      "target": [
+        { "target": "dmg", "arch": ["x64", "arm64"] }
+      ],
+      "category": "public.app-category.utilities",
+      "identity": null
+    },
+    "dmg": {
+      "title": "Snapchat Story Viewer"
+    }
+  }
+}

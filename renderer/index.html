@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta
+    http-equiv="Content-Security-Policy"
+    content="
+      default-src 'self';
+      script-src 'self';
+      style-src 'self' 'unsafe-inline';
+      img-src 'self' https://*.sc-cdn.net https://*.snapchat.com data:;
+      media-src https://*.sc-cdn.net https://*.snapchat.com;
+      connect-src 'none';
+    "
+  />
+  <title>Snapchat Story Viewer</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- macOS traffic-light drag region -->
+  <div class="titlebar-spacer"></div>
+
+  <!-- Update banner (hidden until an update is available) -->
+  <div id="updateBanner" class="update-banner hidden">
+    <span id="updateMsg"></span>
+    <div class="update-actions">
+      <button id="updateNowBtn" class="update-now-btn">Update Now</button>
+      <button id="updateLaterBtn" class="update-later-btn">Later</button>
+    </div>
+  </div>
+
+  <div class="app-container">
+    <!-- Search bar -->
+    <header class="search-header">
+      <div class="search-box">
+        <svg class="search-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <input
+          id="searchInput"
+          type="text"
+          placeholder="Enter Snapchat username…"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <button id="searchBtn">Search</button>
+      </div>
+    </header>
+
+    <!-- Main content area -->
+    <main id="main">
+      <!-- Empty / welcome state -->
+      <div id="emptyState" class="empty-state">
+        <div class="ghost-icon">👻</div>
+        <p>Search for a public Snapchat account to view their stories.</p>
+        <div id="recentSearches" class="recent-searches hidden">
+          <div id="recentList" class="recent-list"></div>
+        </div>
+      </div>
+
+      <!-- Loading spinner -->
+      <div id="loadingState" class="loading-state hidden">
+        <div class="spinner"></div>
+        <p>Fetching stories…</p>
+      </div>
+
+      <!-- Error state -->
+      <div id="errorState" class="error-state hidden">
+        <div class="error-icon">⚠️</div>
+        <p id="errorMsg"></p>
+      </div>
+
+      <!-- Results -->
+      <div id="resultsState" class="results hidden">
+        <!-- Profile bar -->
+        <div class="profile-bar">
+          <img id="profileAvatar" class="avatar" src="" alt="" />
+          <div class="profile-info">
+            <span id="profileName" class="profile-name"></span>
+            <span id="profileSub" class="profile-sub"></span>
+          </div>
+          <button id="downloadAllBtn" class="btn-primary">Download All</button>
+        </div>
+
+        <!-- Progress bar (hidden until batch download) -->
+        <div id="progressBar" class="progress-bar hidden">
+          <div id="progressFill" class="progress-fill"></div>
+          <span id="progressLabel" class="progress-label">0 / 0</span>
+        </div>
+
+        <!-- Category tabs -->
+        <div class="tabs" id="tabs">
+          <button class="tab active" data-tab="all">All</button>
+          <button class="tab" data-tab="story">Story</button>
+          <button class="tab" data-tab="highlight">Highlights</button>
+          <button class="tab" data-tab="spotlight">Spotlight</button>
+        </div>
+
+        <!-- Story grid -->
+        <div id="storyGrid" class="story-grid"></div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Lightbox -->
+  <div id="lightbox" class="lightbox hidden">
+    <div class="lightbox-backdrop"></div>
+    <button class="lightbox-close" id="lightboxClose">&times;</button>
+    <div class="lightbox-content">
+      <button class="lightbox-nav prev" id="lightboxPrev">&#8249;</button>
+      <div class="lightbox-media-wrap" id="lightboxMediaWrap"></div>
+      <button class="lightbox-nav next" id="lightboxNext">&#8250;</button>
+      <div class="lightbox-meta" id="lightboxMeta"></div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
