@@ -5,6 +5,24 @@ let lightboxSnaps = [];       // snaps visible in current tab
 let lightboxIndex = 0;
 let unsubProgress = null;
 
+/* ===== Download tracking (localStorage) ===== */
+const DOWNLOADS_KEY = 'snapDownloads';
+
+// Keep an in-memory Set for O(1) lookups; sync to localStorage on every write.
+let downloadedIds = (function loadDownloads() {
+  try { return new Set(JSON.parse(localStorage.getItem(DOWNLOADS_KEY)) || []); }
+  catch { return new Set(); }
+})();
+
+function markDownloaded(id) {
+  downloadedIds.add(id);
+  localStorage.setItem(DOWNLOADS_KEY, JSON.stringify([...downloadedIds]));
+}
+
+function isDownloaded(id) {
+  return downloadedIds.has(id);
+}
+
 /* ===== Recent searches (localStorage) ===== */
 const HISTORY_KEY = 'snapHistory';
 const MAX_HISTORY = 8;
@@ -150,6 +168,23 @@ function showState(which) {
     el.classList.add('hidden')
   );
   which.classList.remove('hidden');
+  // Home button is visible on every screen except the home screen itself
+  document.getElementById('homeBtn').classList.toggle('hidden', which === emptyState);
+}
+
+function updateDownloadAllBtn() {
+  if (!currentData) return;
+  const newCount = currentData.allSnaps.filter(s => !isDownloaded(s.id)).length;
+  if (newCount === 0) {
+    downloadAllBtn.textContent = 'All Downloaded';
+    downloadAllBtn.disabled = true;
+  } else if (newCount < currentData.allSnaps.length) {
+    downloadAllBtn.textContent = `Download ${newCount} New`;
+    downloadAllBtn.disabled = false;
+  } else {
+    downloadAllBtn.textContent = 'Download All';
+    downloadAllBtn.disabled = false;
+  }
 }
 
 function showError(msg) {
@@ -219,6 +254,7 @@ function renderResults() {
   });
 
   renderGrid();
+  updateDownloadAllBtn();
   showState(resultsState);
 }
 
@@ -288,6 +324,14 @@ function buildCard(snap, idx) {
   sourceTag.textContent = snap.source;
   card.appendChild(sourceTag);
 
+  // Downloaded checkmark badge
+  if (isDownloaded(snap.id)) {
+    const check = document.createElement('div');
+    check.className = 'card-downloaded';
+    check.textContent = '✓';
+    card.appendChild(check);
+  }
+
   // Hover overlay
   const overlay = document.createElement('div');
   overlay.className = 'card-overlay';
@@ -302,10 +346,10 @@ function buildCard(snap, idx) {
 
   const dlBtn = document.createElement('button');
   dlBtn.className = 'btn-dl';
-  dlBtn.textContent = 'Download';
+  dlBtn.textContent = isDownloaded(snap.id) ? 'Re-download' : 'Download';
   dlBtn.addEventListener('click', (e) => {
     e.stopPropagation();
-    downloadSnap(snap, dlBtn);
+    downloadSnap(snap, dlBtn, card);
   });
 
   overlay.appendChild(viewBtn);
@@ -319,31 +363,45 @@ function buildCard(snap, idx) {
 }
 
 /* ===== Download single snap ===== */
-async function downloadSnap(snap, btn) {
-  if (btn) {
-    btn.disabled = true;
-    btn.textContent = '…';
-  }
+async function downloadSnap(snap, btn, cardEl) {
+  if (btn) { btn.disabled = true; btn.textContent = '…'; }
+
   const result = await window.snapAPI.downloadStory(snap);
-  if (btn) {
-    btn.disabled = false;
-    btn.textContent = result.ok ? 'Saved!' : 'Error';
-    setTimeout(() => { btn.textContent = 'Download'; }, 2000);
+
+  if (result.ok) {
+    markDownloaded(snap.id);
+    updateDownloadAllBtn();
+    // Add checkmark badge to this card if not already there
+    if (cardEl && !cardEl.querySelector('.card-downloaded')) {
+      const check = document.createElement('div');
+      check.className = 'card-downloaded';
+      check.textContent = '✓';
+      cardEl.appendChild(check);
+    }
+    if (btn) { btn.disabled = false; btn.textContent = 'Re-download'; }
+  } else {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = 'Error';
+      setTimeout(() => {
+        btn.textContent = isDownloaded(snap.id) ? 'Re-download' : 'Download';
+      }, 2000);
+    }
   }
 }
 
 /* ===== Download all ===== */
 downloadAllBtn.addEventListener('click', async () => {
   if (!currentData) return;
-  const snaps = currentData.allSnaps;
-  if (!snaps.length) return;
+  // Only download snaps that haven't been saved before
+  const newSnaps = currentData.allSnaps.filter(s => !isDownloaded(s.id));
+  if (!newSnaps.length) return;
 
   downloadAllBtn.disabled = true;
   progressBar.classList.remove('hidden');
   progressFill.style.width = '0%';
-  progressLabel.textContent = `0 / ${snaps.length}`;
+  progressLabel.textContent = `0 / ${newSnaps.length}`;
 
-  // Subscribe to progress
   if (unsubProgress) unsubProgress();
   unsubProgress = window.snapAPI.onDownloadProgress(({ current, total }) => {
     const pct = Math.round((current / total) * 100);
@@ -352,17 +410,21 @@ downloadAllBtn.addEventListener('click', async () => {
   });
 
   const username = currentData.userProfile.username;
-  const result = await window.snapAPI.downloadAll(snaps, username);
+  const result = await window.snapAPI.downloadAll(newSnaps, username);
 
   if (unsubProgress) { unsubProgress(); unsubProgress = null; }
-  downloadAllBtn.disabled = false;
 
   if (!result.ok) {
     progressLabel.textContent = 'Error: ' + result.error;
+    downloadAllBtn.disabled = false;
   } else {
+    // Mark every downloaded snap and refresh the grid to show checkmarks
+    newSnaps.forEach(s => markDownloaded(s.id));
     progressFill.style.width = '100%';
     progressLabel.textContent = 'Done!';
     setTimeout(() => progressBar.classList.add('hidden'), 3000);
+    renderGrid();
+    updateDownloadAllBtn();
   }
 });
 
@@ -454,6 +516,11 @@ function formatCount(n) {
 
 /* ===== Init ===== */
 renderRecentSearches();
+
+document.getElementById('homeBtn').addEventListener('click', () => {
+  searchInput.value = '';
+  goHome();
+});
 
 /* ===== Update banner ===== */
 window.snapAPI.onUpdateAvailable(({ version, releaseUrl }) => {

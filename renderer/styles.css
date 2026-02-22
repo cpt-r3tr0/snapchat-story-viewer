@@ -99,9 +99,32 @@ main {
 
 /* ===== Search ===== */
 .search-header {
+  position: relative;
   padding: 12px 24px 16px;
   -webkit-app-region: drag;
 }
+
+/* Home button — absolutely positioned so search box stays centered */
+.home-btn {
+  position: absolute;
+  left: 24px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  color: var(--text-muted);
+  cursor: pointer;
+  -webkit-app-region: no-drag;
+  transition: color var(--transition), border-color var(--transition);
+}
+
+.home-btn:hover { color: var(--yellow); border-color: var(--yellow); }
 
 .search-box {
   display: flex;
@@ -344,6 +367,25 @@ main {
   font-weight: 600;
   color: #fff;
   pointer-events: none;
+}
+
+/* Downloaded checkmark badge */
+.card-downloaded {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--yellow);
+  color: #000;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 1;
 }
 
 /* Source tag */
